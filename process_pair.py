@@ -195,6 +195,7 @@ if __name__ == "__main__":
         aws_access_key_id=config['AWS']['Access Key'],
         aws_secret_access_key=config['AWS']['Secret Key']
     )
+    pd_queue_url = sqs_client.get_queue_url(QueueName=config['AWS']['Queue'])['QueueUrl']
 
     # connect to DynamoDB
     print("Connecting to DynamoDB...")
@@ -204,8 +205,6 @@ if __name__ == "__main__":
         aws_access_key_id=config['AWS']['Access Key'],
         aws_secret_access_key=config['AWS']['Secret Key']
     )
-
-    pd_queue_url = sqs_client.get_queue_url(QueueName=config['AWS']['Queue'])['QueueUrl']
 
     # while there are messages in the queue, process directory messages
     print("Waiting for messages...")
