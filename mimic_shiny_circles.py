@@ -1,5 +1,6 @@
-import boto3
 from blessings import Terminal
+import boto3
+from boto3.dynamodb.types import TypeDeserializer
 import ctypes
 import json
 import multiprocessing
@@ -129,7 +130,8 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
             input("Ejected discs; swap and press Enter...")
 
 
-def get_disc_info(term, drive_dict):
+def get_disc_info(term, drive_dict, dbd_client):
+    serializer = boto3.dynamodb.types.TypeSerializer()
 
     info = disc_info()
 
@@ -138,16 +140,31 @@ def get_disc_info(term, drive_dict):
             print("Input information about the disc to be placed in '" + drive_dict['description'] + "'")
             print()
             while 1:
+                # request input from user
                 info.input()
                 print()
+                # show the user what they just typed
                 info.show()
                 print()
                 answer = input("Is the disc information correct? [Y/n] ")
                 if answer == 'n':
                     continue
 
+                # check whether this would overwrite an entry already in the database
+                print("Checking whether disc is already in the database...")
+                disc_dict = info.get_dict()
+                if disc_dict['disc_number'] == None:
+                    disc_dict['disc_number'] = 1
+                disc_db_key = { 'disc_title': disc_dict['disc_title'], 'disc_number': disc_dict['disc_number'] }
+                disc_db_item = {k: serializer.serialize(v) for k,v in disc_db_key.items() }
+                response = dbd_client.get_item(TableName='disc_table', Key=disc_db_item)
+                if 'Item' in response:
+                    print("Problem: '%s', disc #%d already exists in the database" % (disc_dict['disc_title'], disc_dict['disc_number']))
+                    input("Press Enter to input information about a new disc...")
+                    continue
+
                 print()
-                input("Insert disc and press Enter...")
+                input("Insert disc into '" + drive_dict['description'] + "' and press Enter...")
                 (status, msg) = rip_cd.verify_cd(drive_dict['device'])
                 if not status:
                     print("Problem with this disc: " + msg)
@@ -174,6 +191,7 @@ if __name__ == "__main__":
     aws = config.get('AWS')
     pd_queue = None
     if aws:
+        # establish SQS stuff
         sqs_client = boto3.client(
             'sqs',
             region_name=config['AWS']['Region'],
@@ -190,9 +208,19 @@ if __name__ == "__main__":
         pd_queue_url = sqs_client.get_queue_url(QueueName=config['AWS']['Queue'])
         pd_queue = sqs_resource.Queue(pd_queue_url['QueueUrl'])
 
+        # connect to DynamoDB
+        print("Connecting to DynamoDB...")
+        dbd_client = boto3.client(
+            'dynamodb',
+            region_name=config['AWS']['Region'],
+            aws_access_key_id=config['AWS']['Access Key'],
+            aws_secret_access_key=config['AWS']['Secret Key']
+        )
+
+
     term = Terminal()
-    disc1_info = get_disc_info(term, drive_pair[0])
-    disc2_info = get_disc_info(term, drive_pair[1])
+    disc1_info = get_disc_info(term, drive_pair[0], dbd_client)
+    disc2_info = get_disc_info(term, drive_pair[1], dbd_client)
 
     metadata = {
         'disc1': disc1_info.get_dict(),
