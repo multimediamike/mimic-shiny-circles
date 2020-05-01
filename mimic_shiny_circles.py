@@ -67,6 +67,9 @@ def create_progress_string(progress_dict):
     return track_progress_str
 
 
+# Rip a pair of discs simultaneously.
+#
+# Returns True if both of the rips completed successfully; False otherwise.
 def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
     pass_count = 1
     if second_pass:
@@ -111,14 +114,17 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
                     progress_dict = parent_comm2.recv()
                     print(create_progress_string(progress_dict))
 
+        error = False
         if return_string1.value != "":
             print("****** Problem extracting disc 1:")
             print(return_string1.value)
             print()
+            error = True
         if return_string2.value != "":
             print("****** Problem extracting disc 2:")
             print(return_string2.value)
             print()
+            error = True
 
         if second_pass:
             input("Press Enter to eject and continue...")
@@ -127,7 +133,10 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
         else:
             subprocess.run([EJECT, device1])
             subprocess.run([EJECT, device2])
-            input("Ejected discs; swap and press Enter...")
+            if not error:
+                input("Ejected discs; swap and press Enter...")
+
+    return not error
 
 
 def get_disc_info(term, drive_dict, dbd_client):
@@ -229,6 +238,7 @@ if __name__ == "__main__":
 
     # generate root directory that will hold 2 pairs of rips
     root_rip_dir = tempfile.mkdtemp(prefix='disc-pairs-', dir=config.get('Output Directory'))
+    print("Extracting images to '%s'..." % (root_rip_dir))
 
     # generate the main metadata file
     metadata_filename = root_rip_dir + '/metadata.json'
@@ -237,8 +247,12 @@ if __name__ == "__main__":
     f.close()
 
     # perform the rips
-    rip_pair(term, root_rip_dir, drive_pair[0]['device'], drive_pair[1]['device'])
-    rip_pair(term, root_rip_dir, drive_pair[1]['device'], drive_pair[0]['device'], second_pass=True)
+    if not rip_pair(term, root_rip_dir, drive_pair[0]['device'], drive_pair[1]['device']):
+        print("Something failed during the first pair rip; exiting (remember to clean up temporary directory '%s')" % root_rip_dir)
+        sys.exit(1)
+    if not rip_pair(term, root_rip_dir, drive_pair[1]['device'], drive_pair[0]['device'], second_pass=True):
+        print("Something failed during the second pair rip; exiting (remember to clean up temporary directory '%s')" % root_rip_dir)
+        sys.exit(1)
 
     # log the root rip dir to the processing queue
     if pd_queue:
