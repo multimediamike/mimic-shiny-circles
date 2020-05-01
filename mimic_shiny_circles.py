@@ -70,7 +70,7 @@ def create_progress_string(progress_dict):
 # Rip a pair of discs simultaneously.
 #
 # Returns True if both of the rips completed successfully; False otherwise.
-def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
+def rip_pair(term, root_rip_dir, drive1, drive2, second_pass=False):
     pass_count = 1
     if second_pass:
         pass_count = 2
@@ -83,7 +83,7 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
     return_string1 = manager.Value(ctypes.c_char_p, '')
     extraction_process1 = multiprocessing.Process(
         target=rip_cd.extract_cd,
-        args=(device1, disc1_dir1, child_comm1, return_string1),
+        args=(drive1['device'], disc1_dir1, child_comm1, return_string1),
         name='Extraction process #1 (pass %d)' % (pass_count)
     )
     extraction_process1.start()
@@ -92,16 +92,16 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
     return_string2 = manager.Value(ctypes.c_char_p, '')
     extraction_process2 = multiprocessing.Process(
         target=rip_cd.extract_cd,
-        args=(device2, disc2_dir1, child_comm2, return_string2),
+        args=(drive2['device'], disc2_dir1, child_comm2, return_string2),
         name='Extraction process #2 (pass %d)' % (pass_count)
     )
     extraction_process2.start()
 
     with term.fullscreen():
         with term.location(0, 1):
-            print("Extracting disc 1 (pass %d)..." % (pass_count))
+            print("Extracting disc using '%s'..." % (drive1['description']))
         with term.location(0, 6):
-            print("Extracting disc 2 (pass %d)..." % (pass_count))
+            print("Extracting disc using '%s'..." % (drive2['description']))
 
         while extraction_process1.is_alive() or extraction_process2.is_alive():
             if parent_comm1.poll(1):
@@ -116,25 +116,28 @@ def rip_pair(term, root_rip_dir, device1, device2, second_pass=False):
 
         error = False
         if return_string1.value != "":
-            print("****** Problem extracting disc 1:")
+            print("****** Problem extracting disc in '%s'" % (drive1['description']))
             print(return_string1.value)
             print()
             error = True
         if return_string2.value != "":
-            print("****** Problem extracting disc 2:")
+            print("****** Problem extracting disc in '%s'" % (drive1['description']))
             print(return_string2.value)
             print()
             error = True
 
         if second_pass:
             input("Press Enter to eject and continue...")
-            subprocess.run([EJECT, device1])
-            subprocess.run([EJECT, device2])
+            subprocess.run([EJECT, drive1['device']])
+            subprocess.run([EJECT, drive2['device']])
         else:
-            subprocess.run([EJECT, device1])
-            subprocess.run([EJECT, device2])
-            if not error:
-                input("Ejected discs; swap and press Enter...")
+            subprocess.run([EJECT, drive1['device']])
+            subprocess.run([EJECT, drive2['device']])
+            if error:
+                print("Encountered error; existing")
+            else:
+                print("Finished first pass; swap and press Enter...")
+            input("press Enter...")
 
     return not error
 
@@ -247,10 +250,10 @@ if __name__ == "__main__":
     f.close()
 
     # perform the rips
-    if not rip_pair(term, root_rip_dir, drive_pair[0]['device'], drive_pair[1]['device']):
+    if not rip_pair(term, root_rip_dir, drive_pair[0], drive_pair[1]):
         print("Something failed during the first pair rip; exiting (remember to clean up temporary directory '%s')" % root_rip_dir)
         sys.exit(1)
-    if not rip_pair(term, root_rip_dir, drive_pair[1]['device'], drive_pair[0]['device'], second_pass=True):
+    if not rip_pair(term, root_rip_dir, drive_pair[1], drive_pair[0], second_pass=True):
         print("Something failed during the second pair rip; exiting (remember to clean up temporary directory '%s')" % root_rip_dir)
         sys.exit(1)
 
