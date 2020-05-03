@@ -114,6 +114,13 @@ def rip_pair(term, root_rip_dir, drive1, drive2, second_pass=False):
                     progress_dict = parent_comm2.recv()
                     print(create_progress_string(progress_dict))
 
+            if return_string1.value != "":
+                print("Failure seen on '%s'; shutting down '%s'..." % (drive1['description'], drive2['description']))
+                parent_comm2.send("shutdown")
+            elif return_string2.value != "":
+                print("Failure seen on '%s'; shutting down '%s'..." % (drive2['description'], drive1['description']))
+                parent_comm1.send("shutdown")
+
         error = False
         if return_string1.value != "":
             print("****** Problem extracting disc in '%s'" % (drive1['description']))
@@ -121,7 +128,7 @@ def rip_pair(term, root_rip_dir, drive1, drive2, second_pass=False):
             print()
             error = True
         if return_string2.value != "":
-            print("****** Problem extracting disc in '%s'" % (drive1['description']))
+            print("****** Problem extracting disc in '%s'" % (drive2['description']))
             print(return_string2.value)
             print()
             error = True
@@ -134,7 +141,7 @@ def rip_pair(term, root_rip_dir, drive1, drive2, second_pass=False):
             subprocess.run([EJECT, drive1['device']])
             subprocess.run([EJECT, drive2['device']])
             if error:
-                print("Encountered error; existing")
+                print("Encountered error; exiting")
             else:
                 print("Finished first pass; swap and press Enter...")
             input("press Enter...")
