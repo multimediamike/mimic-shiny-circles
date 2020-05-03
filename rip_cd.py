@@ -115,7 +115,7 @@ def verify_cd(input_device):
 def run_from_other_process(cmd_tuple, return_string):
     ret = subprocess.run(cmd_tuple, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        return_string.value = "Non-zero return code"
+        return_string.value = "Non-zero return code (%d)" % (ret.returncode)
 
 
 # returns an array of filesizes at 1-second intervals
@@ -127,6 +127,10 @@ def watch_file_size(process, filename, progress_dict, comms=None):
             progress_dict['current_track_bytes'] = sizes[-1]
         if comms:
             comms.send(progress_dict)
+            # if the parent sends any message at all, construe that as
+            # an early shutdown notice
+            if comms.poll():
+                process.terminate()
         time.sleep(1)
 
     # send one last progress event as a '100%' notification
