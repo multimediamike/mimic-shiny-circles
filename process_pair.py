@@ -114,7 +114,7 @@ def process_directory(input_path, archive_dir, dbd_client):
     for i in [1, 2]:
         disc_key = 'disc' + str(i)
         dir_name = metadata[disc_key]['disc_title']
-        if metadata[disc_key]['disc_number']:
+        if metadata[disc_key]['disc_count'] > 1:
             dir_name += ' - disc ' + str(metadata[disc_key]['disc_number'])
         dir_name = format_filename(dir_name)
         full_output_path = archive_dir + '/' + dir_name
