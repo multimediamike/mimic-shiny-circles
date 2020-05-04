@@ -2,10 +2,13 @@ blessings==1.7
 boto3==1.12.41
 botocore==1.15.41
 docutils==0.15.2
+inquirer==2.6.3
 jmespath==0.9.5
 pkg-resources==0.0.0
 python-dateutil==2.8.1
+python-editor==1.0.4
 PyYAML==5.3.1
+readchar==2.0.1
 s3transfer==0.3.3
 six==1.14.0
 urllib3==1.25.9

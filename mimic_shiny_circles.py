@@ -2,6 +2,8 @@ from blessings import Terminal
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 import ctypes
+import inquirer
+from inquirer import errors
 import json
 import multiprocessing
 import subprocess
@@ -16,6 +18,21 @@ import rip_cd
 EJECT = '/usr/bin/eject'
 
 
+def validate_disc_number(answers, current):
+    if current == '':
+        answers['disc_number'] = 1
+        answers['disc_count'] = 1
+    else:
+        try:
+            (disc_number, disc_count) = current.split('/')
+            answers['disc_number'] = int(disc_number)
+            answers['disc_count'] = int(disc_count)
+        except ValueError:
+            raise errors.ValidationError('', reason='Needs to be either "x/y" or blank (for 1/1)')
+
+    return True
+
+
 class disc_info():
 
     def __init__(self):
@@ -26,15 +43,19 @@ class disc_info():
         self.companies = None
 
     def input(self):
-        self.disc_title = input('Disc title: ')
-        self.disc_number = input('Disc number (press enter if not part of a set): ')
-        if self.disc_number:
-            self.disc_number = int(self.disc_number)
-            self.disc_count = int(input('Total number of discs in set: '))
-        else:
-            self.disc_number = None
-        self.years = input('Years mentioned on disc (separated with semi-colons): ')
-        self.companies = input('Companies mentioned on disc (separated with semi-colons): ')
+        questions = [
+            inquirer.Text('disc_title', message="Disc title"),
+            inquirer.Text('', message="Disc number (press enter if not part of a set)", validate=validate_disc_number),
+            inquirer.Text('years', message="Years mentioned on disc (separated with semi-colons or hyphen)"),
+            inquirer.Text('companies', message="Companies mentioned on disc (separated with semi-colons)")
+        ]
+        answers = inquirer.prompt(questions)
+
+        self.disc_title = answers['disc_title']
+        self.disc_number = answers['disc_number']
+        self.disc_count = answers['disc_count']
+        self.years = answers['years']
+        self.companies = answers['companies']
 
     def show(self):
         print("disc title: " + self.disc_title)
