@@ -4,6 +4,7 @@ import hashlib
 import json
 import multiprocessing
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,13 @@ CDPARANOIA = '/usr/bin/cdparanoia'
 WAV_HEADER_SIZE = 44
 AUDIO_BYTES_PER_SECTOR = 2352
 FORM1_DATA_BYTES_PER_SECTOR = 2048
+
+
+# handle Ctrl-C:
+force_cancel = False
+def ctrlc_handler(signal_received, frame):
+    print('SIGINT or CTRL-C detected. Exiting gracefully')
+    force_cancel = True
 
 
 def get_drive_string(input_device):
@@ -290,6 +298,9 @@ def extract_cd(input_device, output_directory, comm, return_string):
 
 
 if __name__ == "__main__":
+    # re-route Ctrl-C:
+    signal.signal(signal.SIGINT, ctrlc_handler)
+
     if len(sys.argv) < 3:
         print("USAGE: rip_disc.py <input device> <output directory>")
         sys.exit(1)
@@ -299,12 +310,17 @@ if __name__ == "__main__":
     return_string = manager.Value(ctypes.c_char_p, '')
     extraction_process = multiprocessing.Process(target=extract_cd, args=(sys.argv[1], sys.argv[2], child_comm, return_string), name="extraction process")
     extraction_process.start()
+
     while extraction_process.is_alive():
         if parent_comm.poll(1):
             progress_dict = parent_comm.recv()
             print('track %d / %d' % (progress_dict['current_track'], progress_dict['track_count']))
             print('track progress: %d / %d bytes (%d%%)' % (progress_dict['current_track_bytes'], progress_dict['current_track_total_bytes'], 100 * progress_dict['current_track_bytes'] / progress_dict['current_track_total_bytes']))
             print('overall progress: %d / %d bytes (%d%%)' % (progress_dict['total_bytes_extracted'] + progress_dict['current_track_bytes'], progress_dict['total_bytes'], 100 * (progress_dict['total_bytes_extracted'] + progress_dict['current_track_bytes']) / progress_dict['total_bytes']))
+            if force_cancel:
+                parent_comm.send("shutdown")
+
+    print("waiting for child process to finish...")
     extraction_process.join()
-    print(extraction_process.exitcode)
-    print("return_string = " + return_string.value)
+    print("extraction process returned code %d" % (extraction_process.exitcode))
+    print("return_string = '%s'" % (return_string.value))
