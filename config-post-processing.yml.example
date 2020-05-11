@@ -1,0 +1,7 @@
+Archive Directory: /path/to/final/archival/directory
+AWS:
+    Region: [AWS region]
+    Queue: [AWS SQS queue name]
+    IAM User: [not actually used by code; just here for reference]
+    Access Key: [AWS access key]
+    Secret Key: [AWS secret key]
