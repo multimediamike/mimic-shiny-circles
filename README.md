@@ -20,3 +20,8 @@ mimic-shiny-circles is a method for archiving CD-ROMs. The underlying philosophy
 * Activate virtualenv: `source py3-flask/bin/activate`
 * Extract a pair of CD-ROMs using 2 different drives: `python mimic_shiny_circles.py config-pair-1.yml`
 * Process the pair and log data into DynamoDB: `python process_pair.py config-post-processing.yml`
+
+## Demonstration
+Since it's unlikely that anyone who isn't the original project's author will ever use this, please enjoy this [asciinema recording](https://asciinema.org/) of the system in action.
+
+[![asciicast](https://asciinema.org/a/329316.png)](https://asciinema.org/a/329316)
