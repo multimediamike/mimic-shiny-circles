@@ -2,4 +2,4 @@ cdinfo2json
 __pycache__
 disc-pairs-*
 py3-venv
-
+*.yml
