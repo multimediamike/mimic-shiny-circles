@@ -3,6 +3,7 @@ from boto3.dynamodb.types import TypeDeserializer
 import json
 import os
 import shutil
+import signal
 import string
 import sys
 import time
@@ -166,7 +167,17 @@ def process_directory(input_path, archive_dir, dbd_client):
         shutil.rmtree(input_path)
 
 
+# handle Ctrl-C:
+force_cancel = False
+def ctrlc_handler(signal_received, frame):
+    print('SIGINT or CTRL-C detected. Exiting gracefully')
+    sys.exit(0)
+
+
 if __name__ == "__main__":
+    # re-route Ctrl-C:
+    signal.signal(signal.SIGINT, ctrlc_handler)
+
     if len(sys.argv) < 2:
         print("USAGE: process_pair.py <configuration file>")
         sys.exit(1)
