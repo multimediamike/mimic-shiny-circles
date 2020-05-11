@@ -45,7 +45,7 @@ class disc_info():
     def input(self):
         questions = [
             inquirer.Text('disc_title', message="Disc title"),
-            inquirer.Text('', message="Disc number (press enter if not part of a set)", validate=validate_disc_number),
+            inquirer.Text('', message="Disc number (x/y; press enter if not part of a set)", validate=validate_disc_number),
             inquirer.Text('years', message="Years mentioned on disc (separated with semi-colons or hyphen)"),
             inquirer.Text('companies', message="Companies mentioned on disc (separated with semi-colons)")
         ]
