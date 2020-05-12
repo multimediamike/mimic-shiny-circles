@@ -24,4 +24,4 @@ mimic-shiny-circles is a method for archiving CD-ROMs. The underlying philosophy
 ## Demonstration
 Since it's unlikely that anyone who isn't the original project's author will ever use this, please enjoy this [asciinema recording](https://asciinema.org/) of the system in action.
 
-[![asciicast](https://asciinema.org/a/329316.png)](https://asciinema.org/a/329316)
+[![asciicast](https://asciinema.org/a/329322.png)](https://asciinema.org/a/329322)
